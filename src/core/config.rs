@@ -168,6 +168,15 @@ impl Config {
         hex::encode(result)
     }
 
+    /// Override the run type regardless of what the config file says. Used by
+    /// embedded hosts (JNI) where the caller's API choice must win: a phone
+    /// starting a server passes a server config, a phone starting a client
+    /// passes a client config, even if the JSON disagrees.
+    pub fn force_run_type(mut self, run_type: RunType) -> Self {
+        self.run_type = run_type;
+        self
+    }
+
     pub fn sip003(&mut self) -> anyhow::Result<bool> {
         if let Ok(json) = env::var("SS_PLUGIN_OPTIONS") {
             *self = Self::populate(&json)?;

@@ -1,15 +1,10 @@
-mod core;
-mod middleware;
-mod proto;
-mod session;
-
 use std::sync::Arc;
 
 use clap::Parser;
 
-use crate::core::config::Config;
-use crate::core::log as trojan_log;
-use crate::core::service::Service;
+use trojanrs::core::config::Config;
+use trojanrs::core::log as trojan_log;
+use trojanrs::core::service::Service;
 
 #[derive(Parser)]
 #[command(
@@ -84,7 +79,7 @@ async fn main() {
     }
 
     if args.build_info {
-        println!("trojan-rs {}", core::version::get_version());
+        println!("trojan-rs {}", trojanrs::core::version::get_version());
         println!("rustls {:?} support", rustls::version::TLS13.version);
         return;
     }
@@ -100,7 +95,7 @@ async fn main() {
         }
     }
 
-    log::info!("Welcome to trojan-rs {}", core::version::get_version());
+    log::info!("Welcome to trojan-rs {}", trojanrs::core::version::get_version());
 
     let config_file = args
         .config
