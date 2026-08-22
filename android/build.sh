@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build libtrojanrs.so for all Android ABIs and copy into the given output
+# Build libtrojan.so for all Android ABIs and copy into the given output
 # directory (default: ../igniter/app/src/main/libs).
 #
 # Prerequisites:
@@ -11,10 +11,10 @@
 #   ANDROID_NDK_HOME=/path/to/ndk ./android/build.sh [output_dir]
 #
 # Output layout (standard Android jniLibs):
-#   <output>/arm64-v8a/libtrojanrs.so
-#   <output>/armeabi-v7a/libtrojanrs.so
-#   <output>/x86/libtrojanrs.so
-#   <output>/x86_64/libtrojanrs.so
+#   <output>/arm64-v8a/libtrojan.so
+#   <output>/armeabi-v7a/libtrojan.so
+#   <output>/x86/libtrojan.so
+#   <output>/x86_64/libtrojan.so
 
 set -euo pipefail
 
@@ -30,7 +30,7 @@ if [ -z "${ANDROID_NDK_HOME:-}" ]; then
 fi
 command -v cargo-ndk >/dev/null || { echo "error: cargo-ndk not installed (cargo install cargo-ndk)" >&2; exit 1; }
 
-echo "building libtrojanrs.so (4 ABIs) -> $OUT"
+echo "building libtrojan.so (4 ABIs) -> $OUT"
 for abi in "${ABIS[@]}"; do
     echo "== $abi =="
     case "$abi" in

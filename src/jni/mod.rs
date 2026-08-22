@@ -1,7 +1,7 @@
 //! Android JNI bridge.
 //!
 //! Exposes trojan-rs to Android via JNI. The library is compiled as a
-//! `cdylib` (`libtrojanrs.so`); Java/Kotlin loads it and calls the exported
+//! `cdylib` (`libtrojan.so`); Java/Kotlin loads it and calls the exported
 //! functions to run a trojan client, a trojan server, or both (different
 //! instances on different ports), on the device. A phone can act as a
 //! client terminal *and* as a server for the FreeWebMovement peer-to-peer
@@ -11,7 +11,7 @@
 //!
 //! ```kotlin
 //! object TrojanNative {
-//!     init { System.loadLibrary("trojanrs") }
+//!     init { System.loadLibrary("trojan") }
 //!     // legacy API kept for compatibility with the old C++ JNIHelper:
 //!     external fun trojan(config: String)
 //!     external fun stop()

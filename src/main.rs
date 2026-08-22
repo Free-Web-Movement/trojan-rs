@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use clap::Parser;
 
-use trojanrs::core::config::Config;
-use trojanrs::core::log as trojan_log;
-use trojanrs::core::service::Service;
+use trojan::core::config::Config;
+use trojan::core::log as trojan_log;
+use trojan::core::service::Service;
 
 #[derive(Parser)]
 #[command(
@@ -79,7 +79,7 @@ async fn main() {
     }
 
     if args.build_info {
-        println!("trojan-rs {}", trojanrs::core::version::get_version());
+        println!("trojan-rs {}", trojan::core::version::get_version());
         println!("rustls {:?} support", rustls::version::TLS13.version);
         return;
     }
@@ -95,7 +95,7 @@ async fn main() {
         }
     }
 
-    log::info!("Welcome to trojan-rs {}", trojanrs::core::version::get_version());
+    log::info!("Welcome to trojan-rs {}", trojan::core::version::get_version());
 
     let config_file = args
         .config

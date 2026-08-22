@@ -3,7 +3,7 @@ package io.github.freewebmovement.igniter
 /**
  * JNI bridge to the trojan-rs native library (client side).
  *
- * The same `libtrojanrs.so` is exported in two Kotlin classes to match the
+ * The same `libtrojan.so` is exported in two Kotlin classes to match the
  * native symbol names:
  *
  * - [JNIHelper] keeps the legacy C++ API (`start`/`terminate`) unchanged so
@@ -16,7 +16,7 @@ object JNIHelper {
     private var isStarted = false
 
     init {
-        System.loadLibrary("trojanrs")
+        System.loadLibrary("trojan")
     }
 
     private external fun trojan(config: String)
