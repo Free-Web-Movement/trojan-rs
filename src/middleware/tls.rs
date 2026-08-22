@@ -1,10 +1,12 @@
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+use std::task::{Context as TaskContext, Poll};
 
-use aex::connection::context::Context;
+use aex::connection::context::{BoxReader, BoxWriter, Context};
 use aex::http::types::Executor;
 use futures::future::FutureExt;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
-use tokio::io::{AsyncRead, AsyncWrite, BufReader};
+use tokio::io::{AsyncRead, AsyncWrite, BufReader, ReadBuf};
 use tokio::net::TcpStream;
 use tokio_rustls::{TlsAcceptor, TlsConnector, rustls};
 
@@ -14,16 +16,50 @@ use crate::core::log::TrojanKeyLog;
 pub trait AsyncStream: AsyncRead + AsyncWrite + Unpin + Send {}
 impl<T: AsyncRead + AsyncWrite + Unpin + Send> AsyncStream for T {}
 
-#[derive(Clone, Default)]
-pub struct RawStream(pub Arc<Mutex<Option<TcpStream>>>);
+/// Adapts the split reader/writer halves carried by an aex context into a
+/// single duplex stream so that a TLS handshake can be performed over them.
+pub struct StreamPair {
+    reader: BoxReader,
+    writer: BoxWriter,
+}
 
-impl RawStream {
-    pub fn new(stream: TcpStream) -> Self {
-        Self(Arc::new(Mutex::new(Some(stream))))
+impl StreamPair {
+    pub fn new(reader: BoxReader, writer: BoxWriter) -> Self {
+        Self { reader, writer }
+    }
+}
+
+impl AsyncRead for StreamPair {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut TaskContext<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        Pin::new(&mut self.reader).poll_read(cx, buf)
+    }
+}
+
+impl AsyncWrite for StreamPair {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut TaskContext<'_>,
+        buf: &[u8],
+    ) -> Poll<std::io::Result<usize>> {
+        Pin::new(&mut self.writer).poll_write(cx, buf)
     }
 
-    pub fn take(&self) -> Option<TcpStream> {
-        self.0.lock().unwrap().take()
+    fn poll_flush(
+        mut self: Pin<&mut Self>,
+        cx: &mut TaskContext<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        Pin::new(&mut self.writer).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut TaskContext<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        Pin::new(&mut self.writer).poll_shutdown(cx)
     }
 }
 
@@ -156,22 +192,22 @@ pub fn client_config(cfg: &SSLConfig) -> anyhow::Result<rustls::ClientConfig> {
 pub struct TlsMiddleware;
 
 impl TlsMiddleware {
-    /// Server-side middleware: performs the TLS handshake on the raw inbound
-    /// stream stashed in the context and installs the TLS halves into
-    /// `ctx.reader`/`ctx.writer`.
+    /// Server-side middleware: performs the TLS handshake over the inbound
+    /// context streams (installed by the unified server) and installs the TLS
+    /// halves back into `ctx.reader`/`ctx.writer`.
     pub fn accept(acceptor: TlsAcceptor) -> Arc<Executor> {
         Arc::new(move |ctx: &mut Context| {
             let acceptor = acceptor.clone();
             async move {
-                let raw = ctx.local.get_value::<RawStream>().and_then(|r| r.take());
-                let stream = match raw {
-                    Some(s) => s,
-                    None => {
-                        log::error!("tls accept middleware: no raw stream in context");
-                        return false;
-                    }
+                let Some(reader) = ctx.reader.take() else {
+                    log::error!("tls accept middleware: no reader in context");
+                    return false;
                 };
-                match acceptor.accept(stream).await {
+                let Some(writer) = ctx.writer.take() else {
+                    log::error!("tls accept middleware: no writer in context");
+                    return false;
+                };
+                match acceptor.accept(StreamPair::new(reader, writer)).await {
                     Ok(tls) => {
                         let alpn = tls
                             .get_ref()

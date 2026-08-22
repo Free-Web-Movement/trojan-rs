@@ -1,25 +1,26 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use aex::connection::context::Context;
 use aex::connection::global::GlobalContext;
 use aex::http::types::Executor;
-use tokio::io::BufReader;
-use tokio::net::TcpListener;
+use aex::tcp::types::RawCodec;
+use aex::unified::UnifiedServer;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::sync::CancellationToken;
 
 use crate::core::authenticator::Authenticator;
 use crate::core::config::{Config, RunType};
 use crate::core::log::LogLevel;
-use crate::middleware::tls::{RawStream, TlsMiddleware};
+use crate::middleware::tls::TlsMiddleware;
 use crate::middleware::trojan::TrojanMiddleware;
-use crate::session::relay_middleware;
+use crate::session::{relay_middleware, resolve};
 
 pub struct Service {
     config: Arc<Config>,
     globals: Arc<GlobalContext>,
-    listener: TcpListener,
     chain: Vec<Arc<Executor>>,
+    addr: SocketAddr,
     cancel: CancellationToken,
 }
 
@@ -104,60 +105,48 @@ impl Service {
                     "127.0.0.1:0".parse().unwrap(),
                     None,
                 )),
-                listener: TcpListener::bind("127.0.0.1:0").await?,
                 chain,
+                addr: "127.0.0.1:0".parse().unwrap(),
                 cancel: CancellationToken::new(),
             });
         }
 
-        let addr = format!("{}:{}", config.local_addr, config.local_port);
-        let listener = TcpListener::bind(&addr).await?;
-        let globals = Arc::new(GlobalContext::new(listener.local_addr()?, None));
+        let addr =
+            resolve(&config.local_addr, config.local_port, false).await?;
+        let globals = Arc::new(GlobalContext::new(addr, None));
 
         Ok(Self {
             config,
             globals,
-            listener,
             chain,
+            addr,
             cancel: CancellationToken::new(),
         })
     }
 
     pub async fn run(self: Arc<Self>) -> anyhow::Result<()> {
         log::info!(
-            "Starting trojan-rs ({:?}) at {}:{}",
+            "Starting trojan-rs ({:?}) at {}",
             self.config.run_type,
-            self.config.local_addr,
-            self.config.local_port
+            self.addr
         );
-        loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => break,
-                accepted = self.listener.accept() => {
-                    let (stream, peer) = match accepted {
-                        Ok(v) => v,
-                        Err(e) => {
-                            log::warn!("Accept error: {}", e);
-                            continue;
-                        }
-                    };
-                    let mut ctx = Context::new(None, None, self.globals.clone(), peer);
-                    match self.config.run_type {
-                        RunType::Server | RunType::Nat => {
-                            ctx.local.set_value(RawStream::new(stream));
-                        }
-                        _ => {
-                            let (r, w) = stream.into_split();
-                            ctx.reader = Some(Box::new(BufReader::new(r)));
-                            ctx.writer = Some(Box::new(w));
-                        }
-                    }
-                    let chain = self.chain.clone();
-                    tokio::spawn(run_chain(chain, ctx));
-                }
+
+        let server = UnifiedServer::new(self.addr, self.globals.clone()).tcp_handler({
+            let chain = self.chain.clone();
+            Arc::new(move |ctx: Context| {
+                let chain = chain.clone();
+                tokio::spawn(run_chain(chain, ctx))
+            })
+        });
+        let mut runner =
+            tokio::spawn(async move { server.start_tcp::<RawCodec, RawCodec>().await });
+
+        tokio::select! {
+            _ = self.cancel.cancelled() => runner.abort(),
+            result = &mut runner => {
+                result??;
             }
         }
-        log::info!("Stopping trojan service");
         Ok(())
     }
 

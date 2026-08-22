@@ -1,16 +1,17 @@
 //! NAT mode middleware: recovers the original destination of a transparently
 //! redirected (iptables REDIRECT / TPROXY) connection via `SO_ORIGINAL_DST`.
+//!
+//! The unified server attaches the accepted connection's file descriptor to
+//! the context as a [`ConnectionFd`] attribute; the split reader/writer halves
+//! share the same descriptor, so the lookup works at any point of the chain.
 
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-use std::os::fd::AsRawFd;
 use std::sync::Arc;
 
-use aex::connection::context::Context;
+use aex::connection::context::{ConnectionFd, Context};
 use aex::http::types::Executor;
 use futures::future::FutureExt;
-use tokio::io::BufReader;
 
-use crate::middleware::tls::RawStream;
 use crate::middleware::trojan::Socks5Target;
 use crate::proto::socks5address::AddressType;
 use crate::proto::trojanrequest::Command;
@@ -20,28 +21,18 @@ use crate::proto::trojanrequest::Command;
 const SO_ORIGINAL_DST: libc::c_int = 80;
 const IP6T_SO_ORIGINAL_DST: libc::c_int = 80;
 
-/// Recovers the pre-redirect destination address, stashes it as the
-/// [`Socks5Target`] and installs the inbound stream halves into the context so
-/// that the TLS connect + trojan client middlewares can proceed.
+/// Recovers the pre-redirect destination address from the connection's file
+/// descriptor attribute and stashes it as the [`Socks5Target`] so that the
+/// TLS connect + trojan client middlewares can proceed.
 pub fn original_dst() -> std::sync::Arc<Executor> {
     Arc::new(|ctx: &mut Context| {
         async move {
-            let Some(raw) = ctx.local.get_value::<RawStream>() else {
-                log::error!("{} nat middleware: no raw stream", ctx.addr);
-                return false;
-            };
-            let stream = raw
-                .0
-                .lock()
-                .unwrap()
-                .take();
-
-            let Some(stream) = stream else {
-                log::error!("{} nat middleware: raw stream already consumed", ctx.addr);
+            let Some(conn_fd) = ctx.local.get_value::<ConnectionFd>() else {
+                log::error!("{} nat middleware: no connection fd attribute", ctx.addr);
                 return false;
             };
 
-            let target = match original_destination(stream.as_raw_fd()) {
+            let target = match original_destination(conn_fd.0) {
                 Ok(a) => a,
                 Err(e) => {
                     log::error!("{} cannot get original destination: {}", ctx.addr, e);
@@ -70,9 +61,6 @@ pub fn original_dst() -> std::sync::Arc<Executor> {
                 address,
             });
 
-            let (r, w) = stream.into_split();
-            ctx.reader = Some(Box::new(BufReader::new(r)));
-            ctx.writer = Some(Box::new(w));
             true
         }
         .boxed()
@@ -136,6 +124,7 @@ fn original_destination(fd: std::os::fd::RawFd) -> anyhow::Result<SocketAddr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::fd::AsRawFd;
 
     #[test]
     fn constants_match_netfilter_headers() {
