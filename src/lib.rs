@@ -1,4 +1,4 @@
-//! trojan-rs library crate.
+//! trojan library crate.
 //!
 //! Both the CLI binary (`src/main.rs`) and the Android JNI bridge
 //! (`src/jni`) are thin shells over this library, so every run mode —

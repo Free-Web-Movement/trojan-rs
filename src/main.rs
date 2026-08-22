@@ -8,9 +8,9 @@ use trojan::core::service::Service;
 
 #[derive(Parser)]
 #[command(
-    name = "trojan-rs",
+    name = "trojan",
     version,
-    about = "trojan-rs - An unidentifiable mechanism that helps you bypass GFW"
+    about = "trojan - An unidentifiable mechanism that helps you bypass GFW"
 )]
 struct Args {
     #[arg(short = 'c', long = "config", value_name = "CONFIG")]
@@ -79,7 +79,7 @@ async fn main() {
     }
 
     if args.build_info {
-        println!("trojan-rs {}", trojan::core::version::get_version());
+        println!("trojan {}", trojan::core::version::get_version());
         println!("rustls {:?} support", rustls::version::TLS13.version);
         return;
     }
@@ -95,7 +95,7 @@ async fn main() {
         }
     }
 
-    log::info!("Welcome to trojan-rs {}", trojan::core::version::get_version());
+    log::info!("Welcome to trojan {}", trojan::core::version::get_version());
 
     let config_file = args
         .config

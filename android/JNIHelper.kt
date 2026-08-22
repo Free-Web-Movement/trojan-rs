@@ -1,14 +1,14 @@
 package io.github.freewebmovement.igniter
 
 /**
- * JNI bridge to the trojan-rs native library (client side).
+ * JNI bridge to the trojan native library (client side).
  *
  * The same `libtrojan.so` is exported in two Kotlin classes to match the
  * native symbol names:
  *
  * - [JNIHelper] keeps the legacy C++ API (`start`/`terminate`) unchanged so
  *   existing call sites keep working.
- * - [TrojanNative] exposes the full trojan-rs API. Client is fully
+ * - [TrojanNative] exposes the full trojan API. Client is fully
  *   supported today; server start/stop are exported and ready, to be
  *   verified against a live deployment later.
  */
@@ -42,7 +42,7 @@ object JNIHelper {
 }
 
 /**
- * New trojan-rs API. A phone running a client listens on a local SOCKS5
+ * New trojan API. A phone running a client listens on a local SOCKS5
  * port and tunnels through a remote trojan server. Server entry points are
  * also exported (a phone can act as a server for the peer-to-peer mesh) but
  * are not yet exercised on device.

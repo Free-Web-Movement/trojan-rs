@@ -126,7 +126,7 @@ impl Service {
 
     pub async fn run(self: Arc<Self>) -> anyhow::Result<()> {
         log::info!(
-            "Starting trojan-rs ({:?}) at {}",
+            "Starting trojan ({:?}) at {}",
             self.config.run_type,
             self.addr
         );

@@ -1,5 +1,5 @@
 [package]
-name = "trojan-rs"
+name = "trojan"
 version = "0.1.0"
 edition = "2024"
 

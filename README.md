@@ -1,4 +1,4 @@
-# trojan-rs
+# trojan
 
 An unidentifiable mechanism that helps you bypass GFW — rewritten in Rust.
 

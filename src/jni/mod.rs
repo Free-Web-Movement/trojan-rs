@@ -1,6 +1,6 @@
 //! Android JNI bridge.
 //!
-//! Exposes trojan-rs to Android via JNI. The library is compiled as a
+//! Exposes trojan to Android via JNI. The library is compiled as a
 //! `cdylib` (`libtrojan.so`); Java/Kotlin loads it and calls the exported
 //! functions to run a trojan client, a trojan server, or both (different
 //! instances on different ports), on the device. A phone can act as a
@@ -56,7 +56,7 @@ unsafe extern "C" {
     fn __android_log_print(prio: i32, tag: *const std::os::raw::c_char, fmt: *const std::os::raw::c_char, ...) -> i32;
 }
 
-/// Route every trojan-rs log line into Android logcat under the "trojan" tag.
+/// Route every trojan log line into Android logcat under the "trojan" tag.
 pub fn install_logcat_bridge() {
     use std::ffi::CString;
     crate::core::log::set_callback(move |message: String, level: crate::core::log::LogLevel| {
@@ -129,7 +129,7 @@ fn spawn_service(config: Config) -> anyhow::Result<Runtime> {
     let cancel_thread = cancel.clone();
 
     let thread = std::thread::Builder::new()
-        .name("trojan-rs".into())
+        .name("trojan".into())
         .spawn(move || {
             let rt = match tokio::runtime::Builder::new_multi_thread()
                 .enable_all()
@@ -294,14 +294,14 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_getSt
     get_state()
 }
 
-/// Version string, e.g. "trojan-rs 0.1.0 (rustls TLS1.3)".
+/// Version string, e.g. "trojan 0.1.0 (rustls TLS1.3)".
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_getVersion(
     env: JNIEnv,
     _class: JClass,
 ) -> jstring {
     let version = format!(
-        "trojan-rs {} (rustls {:?})",
+        "trojan {} (rustls {:?})",
         crate::core::version::get_version(),
         rustls::version::TLS13.version
     );

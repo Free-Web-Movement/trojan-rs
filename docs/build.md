@@ -1,6 +1,6 @@
 # Build
 
-trojan-rs is written in Rust and only requires a Rust toolchain to build — there is no dependency on CMake, Boost, or OpenSSL (TLS is provided by rustls). Linux, macOS, and other Unix-like platforms are supported.
+trojan is written in Rust and only requires a Rust toolchain to build — there is no dependency on CMake, Boost, or OpenSSL (TLS is provided by rustls). Linux, macOS, and other Unix-like platforms are supported.
 
 ## Dependencies
 
