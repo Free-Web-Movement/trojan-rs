@@ -1,71 +1,52 @@
 # Build
 
-We'll only cover the build process on Linux since we will be providing Windows and macOS binaries. Building trojan on every platform is similar.
+trojan-rs is written in Rust and only requires a Rust toolchain to build — there is no dependency on CMake, Boost, or OpenSSL (TLS is provided by rustls). Linux, macOS, and other Unix-like platforms are supported.
 
 ## Dependencies
 
-Install these dependencies before you build (note that the test has some [additional dependencies](https://github.com/trojan-gfw/trojan/blob/master/tests/LinuxSmokeTest/README.md)):
+- [Rust](https://www.rust-lang.org/tools/install) >= 1.75 (via `rustup` or your distribution's package manager)
+- A C toolchain (e.g. `build-essential` on Debian/Ubuntu) for linking
 
-- [CMake](https://cmake.org/) >= 3.7.2
-- [Boost](http://www.boost.org/) >= 1.66.0
-- [OpenSSL](https://www.openssl.org/) >= 1.1.0
-- [libmysqlclient](https://dev.mysql.com/downloads/connector/c/)
+For Debian users:
 
-For Debian users, run `sudo apt -y install build-essential cmake libboost-system-dev libboost-program-options-dev libssl-dev default-libmysqlclient-dev` to install all the necessary dependencies.
+```bash
+sudo apt -y install build-essential curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
 
 ## Clone
 
-Type in
+The [aex](https://github.com/Free-Web-Movement/aex) framework is vendored as a git submodule, so clone recursively:
 
 ```bash
-git clone https://github.com/trojan-gfw/trojan.git
-cd trojan/
+git clone --recurse-submodules https://github.com/Free-Web-Movement/trojan-rs.git
+cd trojan-rs/
 ```
 
-to clone the project and go into the directory.
+If you already cloned without `--recurse-submodules`, run `git submodule update --init` inside the repository.
 
-## Build and Install
-
-Type in
+## Build and Test
 
 ```bash
-mkdir build
-cd build/
-cmake ..
-make
-ctest
-sudo make install
+cargo build --release
 ```
 
-to build, test, and install trojan. If everything goes well you'll be able to use trojan.
+To enable MySQL-based user authentication, build with the `mysql` feature:
 
-The `cmake ..` command can be extended with the following options:
+```bash
+cargo build --release --features mysql
+```
 
-- `-DDEFAULT_CONFIG=/path/to/default/config.json`: the default path trojan will look for config (defaults to `${CMAKE_INSTALL_FULL_SYSCONFDIR}/trojan/config.json`).
-- `ENABLE_MYSQL`
-    - `-DENABLE_MYSQL=ON`: build with MySQL support (default).
-    - `-DENABLE_MYSQL=OFF`: build without MySQL support.
-- `ENABLE_NAT` (Only on Linux)
-    - `-DENABLE_NAT=ON`: build with NAT support (default).
-    - `-DENABLE_NAT=OFF`: build without NAT support.
-- `ENABLE_REUSE_PORT` (Only on Linux)
-    - `-DENABLE_REUSE_PORT=ON`: build with `SO_REUSEPORT` support (default).
-    - `-DENABLE_REUSE_PORT=OFF`: build without `SO_REUSEPORT` support.
-- `ENABLE_SSL_KEYLOG` (OpenSSL >= 1.1.1)
-    - `-DENABLE_SSL_KEYLOG=ON`: build with SSL KeyLog support (default).
-    - `-DENABLE_SSL_KEYLOG=OFF`: build without SSL KeyLog support.
-- `ENABLE_TLS13_CIPHERSUITES` (OpenSSL >= 1.1.1)
-    - `-DENABLE_TLS13_CIPHERSUITES=ON`: build with TLS1.3 ciphersuites support (default).
-    - `-DENABLE_TLS13_CIPHERSUITES=OFF`: build without TLS1.3 ciphersuites support.
-- `FORCE_TCP_FASTOPEN`
-    - `-DFORCE_TCP_FASTOPEN=ON`: force build with `TCP_FASTOPEN` support.
-    - `-DFORCE_TCP_FASTOPEN=OFF`: build with `TCP_FASTOPEN` support based on system capabilities (default).
-- `SYSTEMD_SERVICE`
-    - `-DSYSTEMD_SERVICE=AUTO`: detect systemd automatically and decide whether to install service (default).
-    - `-DSYSTEMD_SERVICE=ON`: install systemd service unconditionally.
-    - `-DSYSTEMD_SERVICE=OFF`: don't install systemd service unconditionally.
-- `-DSYSTEMD_SERVICE_PATH=/path/to/systemd/system`: the path to which the systemd service will be installed (defaults to `/lib/systemd/system`).
+Run the unit test suite with:
 
-After installation, config examples will be installed to `${CMAKE_INSTALL_DOCDIR}/examples/` and a server config will be installed to `${CMAKE_INSTALL_FULL_SYSCONFDIR}/trojan/config.json`.
+```bash
+cargo test
+```
 
-[Homepage](.) | [Prev Page](authenticator) | [Next Page](usage)
+## Install
+
+Copy the binary wherever you like, e.g.:
+
+```bash
+sudo cp target/release/trojan-rs /usr/local/bin/
+```

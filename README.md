@@ -1,28 +1,41 @@
-# trojan
+# trojan-rs
 
-[![Build Status](https://dev.azure.com/GreaterFire/Trojan-GFW/_apis/build/status/trojan-gfw.trojan?branchName=master)](https://dev.azure.com/GreaterFire/Trojan-GFW/_build/latest?definitionId=5&branchName=master)
+An unidentifiable mechanism that helps you bypass GFW — rewritten in Rust.
 
-An unidentifiable mechanism that helps you bypass GFW.
+This is a Rust implementation of the [trojan](https://github.com/trojan-gfw/trojan) protocol, built on the [aex](https://github.com/Free-Web-Movement/aex) middleware framework. It keeps full wire compatibility with the original C++ trojan: the same protocol, the same `config.json` format, and the same command-line workflow.
 
-Trojan features multiple protocols over `TLS` to avoid both active/passive detections and ISP `QoS` limitations.
+## Features
 
-Trojan is not a fixed program or protocol. It's an idea, an idea that imitating the most common service, to an extent that it behaves identically, could help you get across the Great FireWall permanently, without being identified ever. We are the GreatER Fire; we ship Trojan Horses.
+- **Server / Client / Forward / NAT** run types
+  - `server`: trojan server with TLS; non-trojan traffic falls through to a fallback web server
+  - `client`: SOCKS5 proxy that tunnels traffic to a trojan server
+  - `forward`: transparent forwarder for traffic already speaking the trojan protocol
+  - `nat`: transparent proxy that recovers the original destination of iptables-redirected connections via `SO_ORIGINAL_DST`
+- SOCKS5 TCP connect and UDP ASSOCIATE
+- TLS 1.3 via rustls (no OpenSSL dependency), ALPN support
+- Optional MySQL-based user authentication (`mysql` feature)
+- Unified multi-protocol listener from aex, with per-connection attributes for middleware
 
-## Documentations
+## Build
 
-An online documentation can be found [here](https://trojan-gfw.github.io/trojan/).  
-Installation guide on various platforms can be found in the [wiki](https://github.com/trojan-gfw/trojan/wiki/Binary-&-Package-Distributions).
+Requires only a Rust toolchain (1.75+). See [docs/build.md](docs/build.md) or run:
 
-## Contributing
+```bash
+git clone --recurse-submodules https://github.com/Free-Web-Movement/trojan-rs.git
+cd trojan-rs
+cargo build --release
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+## Usage
 
-## Dependencies
+```bash
+./target/release/trojan-rs config.json        # run
+./target/release/trojan-rs --test config.json # validate config
+```
 
-- [CMake](https://cmake.org/) >= 3.7.2
-- [Boost](http://www.boost.org/) >= 1.66.0
-- [OpenSSL](https://www.openssl.org/) >= 1.1.0
-- [libmysqlclient](https://dev.mysql.com/downloads/connector/c/)
+`SIGHUP` restarts the service with a reloaded config; `SIGTERM`/`SIGINT` stop it.
+
+Full documentation lives in [docs/](docs/README.md).
 
 ## License
 

@@ -1,22 +1,29 @@
 # Usage
 
 ```
-usage: ./trojan [-htv] [-l LOG] [-k KEYLOG] [[-c] CONFIG]
-options:
-  -c [ --config ] CONFIG specify config file
-  -h [ --help ]          print help message
-  -k [ --keylog ] KEYLOG specify keylog file location (OpenSSL >= 1.1.1)
-  -l [ --log ] LOG       specify log file location
-  -t [ --test ]          test config file
-  -v [ --version ]       print version and build info
+trojan-rs - An unidentifiable mechanism that helps you bypass GFW
+
+Usage: trojan-rs [OPTIONS] [CONFIG]
+
+Arguments:
+  [CONFIG]  
+
+Options:
+  -c, --config <CONFIG>  
+  -l, --log <LOG>        
+  -k, --keylog <KEYLOG>  
+  -t, --test             
+  -v, --build-info       
+  -h, --help             Print help
+  -V, --version          Print version
 ```
 
-The default value for CONFIG is where the default config is installed on Linux and other UNIX-like systems and `config.json` on Windows.
+The default value for CONFIG is `config.json` in the working directory.
 
 On Linux and other UNIX-like systems, the behavior of the handlers for the following signals are overridden:
 
 - `SIGHUP`: Upon receiving `SIGHUP`, trojan will stop the service, reload the config, and restart the service. All existing connections are dropped. As a side effect, if trojan is left in the background of a shell, it will not exit when the shell exits.
-- `SIGUSR1`: Upon receiving `SIGUSR1`, trojan will reload the certificate and private key of the `SSL` server. No existing connections are dropped, and the new certificate doesn't affect these connections.
+- `SIGUSR1`: Certificate hot-reloading is not supported yet; trojan-rs logs a warning and keeps running.
 
 Make sure your [config file](config) is valid. Configuring trojan is not trivial: there are several ideas you need to understand and several pitfalls you might fall into. Unless you are an expert, you shouldn't configure a trojan server all by yourself.
 
