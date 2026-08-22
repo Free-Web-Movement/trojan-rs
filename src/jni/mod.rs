@@ -41,6 +41,44 @@ use crate::core::config::Config;
 use crate::core::service::Service;
 
 // ---------------------------------------------------------------------------
+// Android logcat bridge
+// ---------------------------------------------------------------------------
+
+/// Android log priorities (android/log.h).
+const ANDROID_LOG_INFO: i32 = 4;
+const ANDROID_LOG_WARN: i32 = 5;
+const ANDROID_LOG_ERROR: i32 = 6;
+
+/// `__android_log_print(int prio, const char *tag, const char *fmt, ...)`.
+/// Only present on Android; stderr does not reach logcat by default.
+#[cfg(target_os = "android")]
+unsafe extern "C" {
+    fn __android_log_print(prio: i32, tag: *const std::os::raw::c_char, fmt: *const std::os::raw::c_char, ...) -> i32;
+}
+
+/// Route every trojan-rs log line into Android logcat under the "trojan" tag.
+pub fn install_logcat_bridge() {
+    use std::ffi::CString;
+    crate::core::log::set_callback(move |message: String, level: crate::core::log::LogLevel| {
+        let prio = match level {
+            crate::core::log::LogLevel::Error | crate::core::log::LogLevel::Fatal => ANDROID_LOG_ERROR,
+            crate::core::log::LogLevel::Warn => ANDROID_LOG_WARN,
+            _ => ANDROID_LOG_INFO,
+        };
+        #[cfg(target_os = "android")]
+        unsafe {
+            let tag = CString::new("trojan").unwrap_or_default();
+            let msg = CString::new(message).unwrap_or_default();
+            __android_log_print(prio, tag.as_ptr(), b"%s\0".as_ptr() as *const std::os::raw::c_char, msg.as_ptr());
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let _ = (prio, message);
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 
@@ -138,6 +176,24 @@ fn spawn_service(config: Config) -> anyhow::Result<Runtime> {
         .map_err(|_| anyhow::anyhow!("service thread exited before startup"))?
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
+    // The service task binds the listening socket inside `run`; block until
+    // it is actually accepting so callers (and the Java `waitForPort` poll)
+    // do not race a slow startup (DNS resolution, TLS config build, ...).
+    let addr = service.local_addr();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    loop {
+        if std::net::TcpStream::connect(addr).is_ok() {
+            break;
+        }
+        if std::time::Instant::now() >= deadline {
+            anyhow::bail!(
+                "service did not start listening on {} within 15s",
+                addr
+            );
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+
     Ok(Runtime {
         service,
         thread,
@@ -152,8 +208,12 @@ fn spawn_service(config: Config) -> anyhow::Result<Runtime> {
 /// `JNI_OnLoad` required by the JVM when the library is loaded. We do not
 /// need to register native methods manually (the names follow the standard
 /// `Java_package_Class_method` scheme), so this just pins the JNI version.
+/// The logger is also initialised here so log lines reach stderr (logcat on
+/// Android).
 #[unsafe(no_mangle)]
 pub extern "system" fn JNI_OnLoad(_vm: jni::JavaVM, _reserved: *mut std::os::raw::c_void) -> jint {
+    let _ = crate::core::log::init();
+    install_logcat_bridge();
     jni::sys::JNI_VERSION_1_6
 }
 

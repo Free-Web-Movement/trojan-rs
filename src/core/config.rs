@@ -4,6 +4,10 @@ use std::fs;
 use sha2::{Sha224, Digest};
 use std::env;
 
+fn default_run_type() -> RunType {
+    RunType::Client
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum RunType {
@@ -91,6 +95,9 @@ pub struct MySQLConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
+    /// C++ trojan config files (as produced by igniter) omit this field and
+    /// default to client mode. Keep that behaviour: absent -> Client.
+    #[serde(default = "default_run_type")]
     pub run_type: RunType,
     pub local_addr: String,
     pub local_port: u16,

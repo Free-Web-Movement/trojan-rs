@@ -153,4 +153,9 @@ impl Service {
     pub fn stop(&self) {
         self.cancel.cancel();
     }
+
+    /// Address the service will (or already does) listen on.
+    pub fn local_addr(&self) -> SocketAddr {
+        self.addr
+    }
 }
