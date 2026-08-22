@@ -1,14 +1,24 @@
 [package]
-name = "trojan"
+name = "freewebmovement-trojan"
 version = "0.1.0"
 edition = "2024"
+description = "An unidentifiable mechanism that helps you bypass GFW (trojan protocol, Rust implementation)"
+license = "GPL-3.0"
+repository = "https://github.com/Free-Web-Movement/trojan-rs"
+readme = "README.md"
+keywords = ["trojan", "proxy", "gfw", "bypass", "anonymous"]
+categories = ["network-programming"]
 
 [lib]
 name = "trojan"
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "trojan"
+path = "src/main.rs"
+
 [dependencies]
-aex = { path = "aex" }
+aex = { path = "aex", version = "0.1.21" }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
 futures = "0.3"
