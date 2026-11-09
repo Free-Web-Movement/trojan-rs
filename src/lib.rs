@@ -9,5 +9,5 @@ pub mod middleware;
 pub mod proto;
 pub mod session;
 
-#[cfg(any(target_os = "android", feature = "jni-host"))]
+#[cfg(any(feature = "jni", target_os = "android"))]
 pub mod jni;

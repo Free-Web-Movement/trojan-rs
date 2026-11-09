@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+#[cfg(feature = "server")]
 use futures::future::FutureExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::UdpSocket;
@@ -299,6 +300,7 @@ pub fn socks5_udp_datagram(address: &Socks5Address, payload: &[u8]) -> Vec<u8> {
 
 /// Generic middleware that relays the inbound context streams to the
 /// outbound stream stashed in the context (used by forward mode).
+#[cfg(feature = "server")]
 pub fn relay_middleware() -> std::sync::Arc<aex::http::types::Executor> {
     Arc::new(|ctx: &mut aex::connection::context::Context| {
         async move {

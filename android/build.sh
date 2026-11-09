@@ -40,7 +40,7 @@ for abi in "${ABIS[@]}"; do
         x86_64) target=x86_64-linux-android ;;
     esac
     rustup target add "$target" >/dev/null 2>&1 || true
-    cargo ndk -t "$abi" -o "$OUT" build --release --lib
+    cargo ndk -t "$abi" -o "$OUT" build --release --lib --features server,jni
 done
 
 echo "done:"

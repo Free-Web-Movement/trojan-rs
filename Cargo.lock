@@ -14,7 +14,9 @@ dependencies = [
 
 [[package]]
 name = "aex"
-version = "0.1.21"
+version = "0.1.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61b3ce669a3491b382992c0412471f6fed19c5e793a5e5ce68f259112db9c92e"
 dependencies = [
  "aex-macros",
  "ahash",
@@ -59,6 +61,8 @@ dependencies = [
 [[package]]
 name = "aex-macros"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98a6862a9c870f24bfccf78bec62c371f3df2fa2d1b2b7b538ebb22ae41eb669"
 dependencies = [
  "proc-macro2",
  "quote",

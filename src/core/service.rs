@@ -4,8 +4,8 @@ use std::sync::Arc;
 use aex::connection::context::Context;
 use aex::connection::global::GlobalContext;
 use aex::http::types::Executor;
-use aex::tcp::types::RawCodec;
-use aex::unified::UnifiedServer;
+use aex::protocols::tcp::{TCPHandler, Tcp};
+use aex::server::Server;
 use tokio_rustls::TlsAcceptor;
 use tokio_util::sync::CancellationToken;
 
@@ -131,15 +131,15 @@ impl Service {
             self.addr
         );
 
-        let server = UnifiedServer::new(self.addr, self.globals.clone()).tcp_handler({
-            let chain = self.chain.clone();
-            Arc::new(move |ctx: Context| {
-                let chain = chain.clone();
-                tokio::spawn(run_chain(chain, ctx))
-            })
+        let chain = self.chain.clone();
+        let handler: TCPHandler = Arc::new(move |ctx: Context| {
+            let chain = chain.clone();
+            tokio::spawn(run_chain(chain, ctx))
         });
-        let mut runner =
-            tokio::spawn(async move { server.start_tcp::<RawCodec, RawCodec>().await });
+        let protocol = Tcp::new(Some(handler)).shared();
+        let server = Server::new(self.globals.clone()).push(protocol);
+        let addr = self.addr;
+        let mut runner = tokio::spawn(async move { server.start(addr).await });
 
         tokio::select! {
             _ = self.cancel.cancelled() => runner.abort(),

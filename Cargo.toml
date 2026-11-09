@@ -16,9 +16,10 @@ crate-type = ["cdylib", "rlib"]
 [[bin]]
 name = "trojan"
 path = "src/main.rs"
+required-features = ["server"]
 
 [dependencies]
-aex = { path = "aex", version = "0.1.21" }
+aex = { version = "0.1.22", optional = true }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
 futures = "0.3"
@@ -40,6 +41,14 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "mysql"], o
 jni = { version = "0.21", features = ["default"] }
 
 [features]
+default = []
+## Server side: aex transport and middleware chain.
+server = ["dep:aex"]
+## JNI bridge shipped with the library. The server half is additionally
+## gated on `server`, so a protocol-only build still exposes JNI.
+jni = []
 mysql = ["dep:sqlx"]
 ## Compile the JNI bridge on non-Android hosts too (for unit/JVM smoke tests).
-jni-host = []
+jni-host = ["jni"]
+
+[workspace]

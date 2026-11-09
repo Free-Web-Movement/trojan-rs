@@ -1,14 +1,24 @@
+#[cfg(feature = "server")]
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "server")]
 use std::task::{Context as TaskContext, Poll};
 
+#[cfg(feature = "server")]
 use aex::connection::context::{BoxReader, BoxWriter, Context};
+#[cfg(feature = "server")]
 use aex::http::types::Executor;
+#[cfg(feature = "server")]
 use futures::future::FutureExt;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
-use tokio::io::{AsyncRead, AsyncWrite, BufReader, ReadBuf};
+use tokio::io::{AsyncRead, AsyncWrite};
+#[cfg(feature = "server")]
+use tokio::io::{BufReader, ReadBuf};
+#[cfg(feature = "server")]
 use tokio::net::TcpStream;
-use tokio_rustls::{TlsAcceptor, TlsConnector, rustls};
+use tokio_rustls::rustls;
+#[cfg(feature = "server")]
+use tokio_rustls::{TlsAcceptor, TlsConnector};
 
 use crate::core::config::SSLConfig;
 use crate::core::log::TrojanKeyLog;
@@ -18,17 +28,20 @@ impl<T: AsyncRead + AsyncWrite + Unpin + Send> AsyncStream for T {}
 
 /// Adapts the split reader/writer halves carried by an aex context into a
 /// single duplex stream so that a TLS handshake can be performed over them.
+#[cfg(feature = "server")]
 pub struct StreamPair {
     reader: BoxReader,
     writer: BoxWriter,
 }
 
+#[cfg(feature = "server")]
 impl StreamPair {
     pub fn new(reader: BoxReader, writer: BoxWriter) -> Self {
         Self { reader, writer }
     }
 }
 
+#[cfg(feature = "server")]
 impl AsyncRead for StreamPair {
     fn poll_read(
         mut self: Pin<&mut Self>,
@@ -39,6 +52,7 @@ impl AsyncRead for StreamPair {
     }
 }
 
+#[cfg(feature = "server")]
 impl AsyncWrite for StreamPair {
     fn poll_write(
         mut self: Pin<&mut Self>,
@@ -189,8 +203,10 @@ pub fn client_config(cfg: &SSLConfig) -> anyhow::Result<rustls::ClientConfig> {
     Ok(config)
 }
 
+#[cfg(feature = "server")]
 pub struct TlsMiddleware;
 
+#[cfg(feature = "server")]
 impl TlsMiddleware {
     /// Server-side middleware: performs the TLS handshake over the inbound
     /// context streams (installed by the unified server) and installs the TLS

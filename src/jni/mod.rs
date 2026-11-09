@@ -29,15 +29,24 @@
 //! `getState()` returns one of the `RunType` discriminants + 100 (client) /
 //! 200 (server) / 0 (idle), see [`state`].
 
+#[cfg(feature = "server")]
 use std::sync::atomic::{AtomicI32, Ordering};
+#[cfg(feature = "server")]
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "server")]
 use std::thread::JoinHandle;
 
-use jni::objects::{JClass, JString};
-use jni::sys::{jboolean, jint, jstring};
+use jni::objects::JClass;
+#[cfg(feature = "server")]
+use jni::objects::JString;
+#[cfg(feature = "server")]
+use jni::sys::jboolean;
+use jni::sys::{jint, jstring};
 use jni::JNIEnv;
 
+#[cfg(feature = "server")]
 use crate::core::config::Config;
+#[cfg(feature = "server")]
 use crate::core::service::Service;
 
 // ---------------------------------------------------------------------------
@@ -58,6 +67,7 @@ unsafe extern "C" {
 
 /// Route every trojan log line into Android logcat under the "trojan" tag.
 pub fn install_logcat_bridge() {
+    #[cfg(target_os = "android")]
     use std::ffi::CString;
     crate::core::log::set_callback(move |message: String, level: crate::core::log::LogLevel| {
         let prio = match level {
@@ -84,15 +94,23 @@ pub fn install_logcat_bridge() {
 
 /// Process-wide shared state. Guarded by a mutex because the Service object
 /// is not Sync; the atomic mirrors the run-type for cheap remote queries.
+#[cfg(feature = "server")]
 static STATE_ATOMIC: AtomicI32 = AtomicI32::new(STATE_IDLE);
 
+#[cfg(feature = "server")]
 const STATE_IDLE: i32 = 0;
+#[cfg(feature = "server")]
 const STATE_CLIENT_STARTING: i32 = 101;
+#[cfg(feature = "server")]
 const STATE_CLIENT_RUNNING: i32 = 102;
+#[cfg(feature = "server")]
 const STATE_SERVER_STARTING: i32 = 201;
+#[cfg(feature = "server")]
 const STATE_SERVER_RUNNING: i32 = 202;
+#[cfg(feature = "server")]
 const STATE_STOPPING: i32 = 999;
 
+#[cfg(feature = "server")]
 struct Runtime {
     // Kept alive so the service object is never dropped while running.
     #[allow(dead_code)]
@@ -101,17 +119,21 @@ struct Runtime {
     cancel: tokio_util::sync::CancellationToken,
 }
 
+#[cfg(feature = "server")]
 struct Instance {
     client: Option<Runtime>,
     server: Option<Runtime>,
 }
 
+#[cfg(feature = "server")]
 static INSTANCE: Mutex<Option<Instance>> = Mutex::new(None);
 
+#[cfg(feature = "server")]
 fn set_state(v: i32) {
     STATE_ATOMIC.store(v, Ordering::SeqCst);
 }
 
+#[cfg(feature = "server")]
 fn get_state() -> i32 {
     STATE_ATOMIC.load(Ordering::SeqCst)
 }
@@ -123,6 +145,7 @@ fn get_state() -> i32 {
 /// Spawn a dedicated OS thread running a fresh tokio runtime, then start the
 /// service on it. Returns a handle that cancels the service and joins the
 /// thread.
+#[cfg(feature = "server")]
 fn spawn_service(config: Config) -> anyhow::Result<Runtime> {
     let (tx, rx) = std::sync::mpsc::channel();
     let cancel = tokio_util::sync::CancellationToken::new();
@@ -220,6 +243,7 @@ pub extern "system" fn JNI_OnLoad(_vm: jni::JavaVM, _reserved: *mut std::os::raw
 /// Legacy: start the client from a config file path (old `JNIHelper.trojan`).
 /// Kept so the existing igniter code continues to work unchanged; internally
 /// it is identical to `startClient`.
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_JNIHelper_trojan(
     mut env: JNIEnv,
@@ -230,6 +254,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_JNIHelper_trojan(
 }
 
 /// Legacy: stop everything (old `JNIHelper.stop`).
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_JNIHelper_stop(
     _env: JNIEnv,
@@ -239,6 +264,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_JNIHelper_stop(
 }
 
 /// Start the client (SOCKS5 listener + TLS + trojan protocol to a remote).
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_startClient(
     mut env: JNIEnv,
@@ -249,6 +275,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_start
 }
 
 /// Start the server (TLS + trojan server, serving the whole network).
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_startServer(
     mut env: JNIEnv,
@@ -259,6 +286,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_start
 }
 
 /// Stop the client instance (server keeps running).
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_stopClient(
     _env: JNIEnv,
@@ -268,6 +296,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_stopC
 }
 
 /// Stop the server instance (client keeps running).
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_stopServer(
     _env: JNIEnv,
@@ -277,6 +306,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_stopS
 }
 
 /// Stop all instances.
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_stopAll(
     _env: JNIEnv,
@@ -286,6 +316,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_stopA
 }
 
 /// Current run state (see module docs for the encoding).
+#[cfg(feature = "server")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_getState(
     _env: JNIEnv,
@@ -315,6 +346,7 @@ pub extern "system" fn Java_io_github_freewebmovement_igniter_TrojanNative_getVe
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+#[cfg(feature = "server")]
 fn start_from_env(env: &mut JNIEnv, config: JString, is_client: bool) -> bool {
     let path: String = match env.get_string(&config) {
         Ok(s) => s.into(),
@@ -326,6 +358,7 @@ fn start_from_env(env: &mut JNIEnv, config: JString, is_client: bool) -> bool {
     start(path, is_client)
 }
 
+#[cfg(feature = "server")]
 fn start(path: String, is_client: bool) -> bool {
     set_state(if is_client {
         STATE_CLIENT_STARTING
@@ -380,6 +413,7 @@ fn start(path: String, is_client: bool) -> bool {
     true
 }
 
+#[cfg(feature = "server")]
 fn stop_slot(index: usize) -> bool {
     let mut guard = INSTANCE.lock().unwrap();
     let Some(instance) = guard.as_mut() else {
@@ -406,6 +440,7 @@ fn stop_slot(index: usize) -> bool {
     }
 }
 
+#[cfg(feature = "server")]
 fn stop_all() -> bool {
     let mut guard = INSTANCE.lock().unwrap();
     let Some(instance) = guard.take() else {
