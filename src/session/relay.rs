@@ -22,9 +22,7 @@ pub struct RelayStats {
 
 /// Resolves `host:port`, preferring IPv4 results when requested.
 pub async fn resolve(host: &str, port: u16, prefer_ipv4: bool) -> anyhow::Result<SocketAddr> {
-    let addrs: Vec<SocketAddr> = tokio::net::lookup_host((host, port))
-        .await?
-        .collect();
+    let addrs: Vec<SocketAddr> = tokio::net::lookup_host((host, port)).await?.collect();
     if addrs.is_empty() {
         anyhow::bail!("cannot resolve {}:", host);
     }
@@ -219,8 +217,7 @@ pub async fn run_udp_session(
                             let Some(target) = target else {
                                 continue;
                             };
-                            let datagram =
-                                socks5_udp_datagram(&packet.address, &packet.payload);
+                            let datagram = socks5_udp_datagram(&packet.address, &packet.payload);
                             if up_sock.send_to(&datagram, target).await.is_err() {
                                 break;
                             }
@@ -318,7 +315,9 @@ pub fn relay_middleware() -> std::sync::Arc<aex::http::types::Executor> {
             let Some(writer) = ctx.writer.take() else {
                 return false;
             };
-            let stats = relay(reader, writer, outbound, &[]).await.unwrap_or_default();
+            let stats = relay(reader, writer, outbound, &[])
+                .await
+                .unwrap_or_default();
             log::info!(
                 "{} disconnected, {} bytes received, {} bytes sent, lasted for {} seconds",
                 ctx.addr,

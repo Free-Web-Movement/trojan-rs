@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha224};
 use std::collections::HashMap;
-use std::fs;
-use sha2::{Sha224, Digest};
 use std::env;
+use std::fs;
 
 fn default_run_type() -> RunType {
     RunType::Client
@@ -127,14 +127,30 @@ pub struct Config {
 }
 
 // Defaults
-fn default_true() -> bool { true }
-fn default_600() -> i64 { 600 }
-fn default_20() -> i32 { 20 }
-fn default_60() -> i32 { 60 }
-fn default_127_0_0_1() -> String { "127.0.0.1".to_string() }
-fn default_3306() -> u16 { 3306 }
-fn default_trojan() -> String { "trojan".to_string() }
-fn default_log_level() -> i32 { 1 }
+fn default_true() -> bool {
+    true
+}
+fn default_600() -> i64 {
+    600
+}
+fn default_20() -> i32 {
+    20
+}
+fn default_60() -> i32 {
+    60
+}
+fn default_127_0_0_1() -> String {
+    "127.0.0.1".to_string()
+}
+fn default_3306() -> u16 {
+    3306
+}
+fn default_trojan() -> String {
+    "trojan".to_string()
+}
+fn default_log_level() -> i32 {
+    1
+}
 
 impl Default for SSLConfig {
     fn default() -> Self {
@@ -190,16 +206,25 @@ impl Config {
             match self.run_type {
                 RunType::Server => {
                     self.local_addr = env::var("SS_REMOTE_HOST").unwrap_or_default();
-                    self.local_port = env::var("SS_REMOTE_PORT").unwrap_or_default().parse().unwrap_or_default();
+                    self.local_port = env::var("SS_REMOTE_PORT")
+                        .unwrap_or_default()
+                        .parse()
+                        .unwrap_or_default();
                 }
                 RunType::Client | RunType::Nat => {
                     anyhow::bail!("SIP003 with wrong run_type");
                 }
                 RunType::Forward => {
                     self.remote_addr = env::var("SS_REMOTE_HOST").unwrap_or_default();
-                    self.remote_port = env::var("SS_REMOTE_PORT").unwrap_or_default().parse().unwrap_or_default();
+                    self.remote_port = env::var("SS_REMOTE_PORT")
+                        .unwrap_or_default()
+                        .parse()
+                        .unwrap_or_default();
                     self.local_addr = env::var("SS_LOCAL_HOST").unwrap_or_default();
-                    self.local_port = env::var("SS_LOCAL_PORT").unwrap_or_default().parse().unwrap_or_default();
+                    self.local_port = env::var("SS_LOCAL_PORT")
+                        .unwrap_or_default()
+                        .parse()
+                        .unwrap_or_default();
                 }
             }
             Ok(true)

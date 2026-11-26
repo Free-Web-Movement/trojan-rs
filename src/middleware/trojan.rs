@@ -10,8 +10,8 @@ use crate::core::authenticator::Authenticator;
 use crate::core::config::Config;
 use crate::middleware::tls::{AlpnNegotiated, OutboundStream};
 use crate::proto::socks5address::{ParseResult, Socks5Address};
-use crate::proto::trojanrequest::{Command, TrojanRequest, MAX_HEADER_LENGTH};
-use crate::session::{relay, resolve, run_udp_session, UdpRole, MAX_LENGTH};
+use crate::proto::trojanrequest::{Command, MAX_HEADER_LENGTH, TrojanRequest};
+use crate::session::{MAX_LENGTH, UdpRole, relay, resolve, run_udp_session};
 
 const SOCKS5_VERSION: u8 = 5;
 const SOCKS5_NO_AUTH: u8 = 0;
@@ -55,11 +55,7 @@ fn alpn_fallback_port(config: &Config, ctx: &Context) -> u16 {
     config.remote_port
 }
 
-async fn connect_outbound(
-    config: &Config,
-    host: &str,
-    port: u16,
-) -> anyhow::Result<TcpStream> {
+async fn connect_outbound(config: &Config, host: &str, port: u16) -> anyhow::Result<TcpStream> {
     let addr = resolve(host, port, config.tcp.prefer_ipv4).await?;
     let tcp = TcpStream::connect(addr).await?;
     if config.tcp.no_delay {
@@ -362,7 +358,9 @@ impl TrojanMiddleware {
                 match command {
                     Command::Connect => {
                         if writer
-                            .write_all(&[0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                            .write_all(&[
+                                0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            ])
                             .await
                             .is_err()
                         {
@@ -417,7 +415,10 @@ impl TrojanMiddleware {
                 let Some(target) = ctx.local.get_value::<Socks5Target>() else {
                     return false;
                 };
-                let Some(outbound) = ctx.local.get_value::<OutboundStream>().and_then(|o| o.take())
+                let Some(outbound) = ctx
+                    .local
+                    .get_value::<OutboundStream>()
+                    .and_then(|o| o.take())
                 else {
                     log::error!("{} trojan client middleware: no outbound stream", peer);
                     return false;
@@ -443,11 +444,15 @@ impl TrojanMiddleware {
                         let Some(writer) = ctx.writer.take() else {
                             return false;
                         };
-                        relay(reader, writer, outbound, &[]).await.unwrap_or_default()
+                        relay(reader, writer, outbound, &[])
+                            .await
+                            .unwrap_or_default()
                     }
                     Command::UdpAssociate => {
-                        let Some(udp) =
-                            ctx.local.get_value::<ClientUdpSocket>().and_then(|u| u.take())
+                        let Some(udp) = ctx
+                            .local
+                            .get_value::<ClientUdpSocket>()
+                            .and_then(|u| u.take())
                         else {
                             return false;
                         };

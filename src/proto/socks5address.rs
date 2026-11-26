@@ -61,10 +61,7 @@ impl Socks5Address {
                 if data.len() < 1 + 4 + 2 {
                     return ParseResult::Partial;
                 }
-                let address = format!(
-                    "{}.{}.{}.{}",
-                    data[1], data[2], data[3], data[4]
-                );
+                let address = format!("{}.{}.{}.{}", data[1], data[2], data[3], data[4]);
                 let port = u16::from_be_bytes([data[5], data[6]]);
                 ParseResult::Complete((
                     Socks5Address {
@@ -188,10 +185,7 @@ mod tests {
 
     #[test]
     fn parse_ipv4_partial() {
-        assert_eq!(
-            Socks5Address::parse(&[1u8, 8, 8]),
-            ParseResult::Partial
-        );
+        assert_eq!(Socks5Address::parse(&[1u8, 8, 8]), ParseResult::Partial);
     }
 
     #[test]
@@ -235,10 +229,7 @@ mod tests {
             _ => panic!("expected complete"),
         };
         assert_eq!(len, 19);
-        assert_eq!(
-            addr.address,
-            "0011:2233:4455:6677:8899:aabb:ccdd:eeff"
-        );
+        assert_eq!(addr.address, "0011:2233:4455:6677:8899:aabb:ccdd:eeff");
         assert_eq!(addr.port, 80);
     }
 

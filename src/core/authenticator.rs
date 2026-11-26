@@ -1,6 +1,6 @@
+use crate::core::config::Config;
 #[cfg(feature = "mysql")]
 use sqlx::mysql::MySqlPool;
-use crate::core::config::Config;
 
 pub struct Authenticator {
     #[cfg(feature = "mysql")]
@@ -14,14 +14,20 @@ impl Authenticator {
 
         #[cfg(feature = "mysql")]
         if config.mysql.enabled {
-            log::info!("Connecting to MySQL server {}:{}", config.mysql.server_addr, config.mysql.server_port);
-            let url = format!("mysql://{}:{}@{}:{}/{}", 
-                config.mysql.username, 
-                config.mysql.password, 
-                config.mysql.server_addr, 
-                config.mysql.server_port, 
-                config.mysql.database);
-            
+            log::info!(
+                "Connecting to MySQL server {}:{}",
+                config.mysql.server_addr,
+                config.mysql.server_port
+            );
+            let url = format!(
+                "mysql://{}:{}@{}:{}/{}",
+                config.mysql.username,
+                config.mysql.password,
+                config.mysql.server_addr,
+                config.mysql.server_port,
+                config.mysql.database
+            );
+
             // Note: sqlx handle SSL differently, might need more config
             let pool = MySqlPool::connect(&url).await?;
             log::info!("Connected to MySQL server");
@@ -42,10 +48,12 @@ impl Authenticator {
 
         #[cfg(feature = "mysql")]
         if let Some(ref pool) = self.pool {
-            let result = sqlx::query_as::<_, (i64, i64)>("SELECT quota, download + upload FROM users WHERE password = ?")
-                .bind(password)
-                .fetch_optional(pool)
-                .await;
+            let result = sqlx::query_as::<_, (i64, i64)>(
+                "SELECT quota, download + upload FROM users WHERE password = ?",
+            )
+            .bind(password)
+            .fetch_optional(pool)
+            .await;
 
             match result {
                 Ok(Some((quota, used))) => {
@@ -87,12 +95,14 @@ impl Authenticator {
 
         #[cfg(feature = "mysql")]
         if let Some(ref pool) = self.pool {
-            let result = sqlx::query("UPDATE users SET download = download + ?, upload = upload + ? WHERE password = ?")
-                .bind(download as i64)
-                .bind(upload as i64)
-                .bind(password)
-                .execute(pool)
-                .await;
+            let result = sqlx::query(
+                "UPDATE users SET download = download + ?, upload = upload + ? WHERE password = ?",
+            )
+            .bind(download as i64)
+            .bind(upload as i64)
+            .bind(password)
+            .execute(pool)
+            .await;
 
             if let Err(e) = result {
                 log::error!("MySQL error during record: {}", e);

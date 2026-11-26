@@ -116,7 +116,10 @@ fn original_destination(fd: std::os::fd::RawFd) -> anyhow::Result<SocketAddr> {
                     sa.sin6_scope_id,
                 )))
             }
-            family => anyhow::bail!("unsupported original destination address family: {}", family),
+            family => anyhow::bail!(
+                "unsupported original destination address family: {}",
+                family
+            ),
         }
     }
 }

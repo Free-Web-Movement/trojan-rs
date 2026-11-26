@@ -1,9 +1,9 @@
+use chrono::Local;
+use log::{Level, LevelFilter, Metadata, Record};
 use std::fs::{File, OpenOptions};
 use std::io::{Write, stderr};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, OnceLock};
-use chrono::Local;
-use log::{Level, LevelFilter, Metadata, Record};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {

@@ -101,7 +101,11 @@ impl TrojanRequest {
         let mut ret = Vec::with_capacity(password.len() + 2 + 1 + 1 + domainname.len() + 2 + 2);
         ret.extend_from_slice(password.as_bytes());
         ret.extend_from_slice(b"\r\n");
-        ret.push(if tcp { COMMAND_CONNECT } else { COMMAND_UDP_ASSOCIATE });
+        ret.push(if tcp {
+            COMMAND_CONNECT
+        } else {
+            COMMAND_UDP_ASSOCIATE
+        });
         ret.push(ATYP_DOMAINNAME);
         ret.push(domainname.len() as u8);
         ret.extend_from_slice(domainname.as_bytes());
